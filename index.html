@@ -857,7 +857,15 @@
   BoldVoice &nbsp;·&nbsp; Built for <span>Lesotho</span> &nbsp;·&nbsp; All reports are anonymous & encrypted &nbsp;·&nbsp; Protected under Lesotho Whistleblower Protection Act
 </footer>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+  // ── SUPABASE CONFIG ──
+  const SUPABASE_URL = 'https://eqvnmyiuxmjbjbrmocgi.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_fRylygP4azHQRuCRM0zJsA_US9RJPiP';
+  const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  let selectedSeverity = '';
+
   function switchTab(name) {
     document.querySelectorAll('.tab').forEach((t, i) => {
       t.classList.toggle('active', ['report','track','stats'][i] === name);
@@ -869,26 +877,50 @@
   function selectSeverity(btn, level) {
     document.querySelectorAll('.severity-btn').forEach(b => b.classList.remove('selected'));
     btn.classList.add('selected');
+    selectedSeverity = level;
   }
 
   function generateRef() {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    let code = 'BV-2025-';
+    let code = 'SN-2026-';
     for (let i = 0; i < 4; i++) code += chars[Math.floor(Math.random() * chars.length)];
     return code;
   }
 
-  function submitReport() {
+  async function submitReport() {
     const sector = document.getElementById('sector').value;
     const category = document.getElementById('category').value;
     const description = document.getElementById('description').value;
+    const incident_date = document.getElementById('incident-date').value;
 
     if (!sector || !category || !description.trim()) {
       alert('Please fill in Sector, Type of Misconduct, and Description before submitting.');
       return;
     }
 
+    const btn = document.querySelector('.submit-btn');
+    btn.textContent = 'Encrypting & Sending...';
+    btn.disabled = true;
+
     const ref = generateRef();
+
+    const { error } = await db.from('reports').insert([{
+      reference_code: ref,
+      sector,
+      category,
+      severity: selectedSeverity || 'unspecified',
+      description,
+      incident_date: incident_date || null,
+      status: 'new'
+    }]);
+
+    if (error) {
+      alert('Submission failed. Please try again.');
+      btn.textContent = '🔒 Submit Anonymously — Encrypt & Send';
+      btn.disabled = false;
+      return;
+    }
+
     document.getElementById('ref-code-display').textContent = ref;
     document.getElementById('form-content').style.display = 'none';
     document.getElementById('success-box').style.display = 'block';
@@ -901,15 +933,40 @@
     document.getElementById('category').value = '';
     document.getElementById('description').value = '';
     document.getElementById('incident-date').value = '';
+    selectedSeverity = '';
     document.querySelectorAll('.severity-btn').forEach(b => b.classList.remove('selected'));
+    const btn = document.querySelector('.submit-btn');
+    btn.textContent = '🔒 Submit Anonymously — Encrypt & Send';
+    btn.disabled = false;
   }
 
-  function trackReport() {
-    const val = document.getElementById('track-input').value.trim();
+  async function trackReport() {
+    const val = document.getElementById('track-input').value.trim().toUpperCase();
     if (!val) return;
-    document.getElementById('track-ref').textContent = val;
+
+    document.getElementById('track-empty').textContent = 'Looking up your report...';
+    document.getElementById('track-result').style.display = 'none';
+
+    const { data, error } = await db.from('reports').select('*').eq('reference_code', val).single();
+
+    if (error || !data) {
+      document.getElementById('track-empty').style.display = 'block';
+      document.getElementById('track-empty').textContent = 'No report found with that reference code. Please check and try again.';
+      return;
+    }
+
+    document.getElementById('track-ref').textContent = data.reference_code;
     document.getElementById('track-result').style.display = 'block';
     document.getElementById('track-empty').style.display = 'none';
+
+    const statusMap = { new: 'New', review: 'Under Review', investigating: 'Investigating', resolved: 'Resolved' };
+    const pillMap = { new: 'pill-new', review: 'pill-review', investigating: 'pill-investigating', resolved: 'pill-resolved' };
+
+    document.querySelector('.status-card .status-row:nth-child(2) .status-value').textContent = data.category;
+    document.querySelector('.status-card .status-row:nth-child(3) .status-value').textContent = data.created_at ? data.created_at.split('T')[0] : '';
+    const pillEl = document.querySelector('.status-pill');
+    pillEl.className = 'status-pill ' + (pillMap[data.status] || 'pill-new');
+    pillEl.textContent = statusMap[data.status] || 'New';
   }
 </script>
 </body>

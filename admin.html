@@ -645,97 +645,55 @@
   <div class="modal" id="modal-content"></div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-  // ── CREDENTIALS (change these!) ──
+  // ── CREDENTIALS ──
   const ADMIN_USER = 'admin';
   const ADMIN_PASS = 'safenest2026';
 
-  // ── SAMPLE DATA (replace with real DB later) ──
-  let reports = [
-    {
-      id: 1,
-      ref: 'BV-2026-A3KP',
-      sector: 'Ministry of Finance',
-      category: 'Financial Corruption / Bribery',
-      severity: 'critical',
-      description: 'Senior official demanding 15% kickback on all supplier invoices above M50,000. Has been ongoing since January 2026.',
-      date: '2026-03-01',
-      status: 'investigating',
-      urgent: true,
-      notes: [
-        { text: 'Report received and flagged as critical. Assigned to senior reviewer.', date: '2026-03-01' },
-        { text: 'Initial assessment complete. Escalated to investigation team.', date: '2026-03-03' }
-      ]
-    },
-    {
-      id: 2,
-      ref: 'BV-2026-B7NX',
-      sector: 'Lesotho Revenue Authority',
-      category: 'Procurement Fraud',
-      severity: 'high',
-      description: 'Procurement contracts consistently awarded to same vendor without tender process. Suspect collusion.',
-      date: '2026-03-03',
-      status: 'review',
-      urgent: false,
-      notes: [
-        { text: 'Report received. Under initial review.', date: '2026-03-03' }
-      ]
-    },
-    {
-      id: 3,
-      ref: 'BV-2026-C2MQ',
-      sector: 'Private Company',
-      category: 'Sexual Harassment',
-      severity: 'high',
-      description: 'Manager making repeated inappropriate comments and unwanted physical contact with junior female staff.',
-      date: '2026-03-05',
-      status: 'new',
-      urgent: true,
-      notes: []
-    },
-    {
-      id: 4,
-      ref: 'BV-2026-D9RW',
-      sector: 'Ministry of Health',
-      category: 'Data / Records Falsification',
-      severity: 'medium',
-      description: 'Patient records being altered to hide medication stock shortages. Affecting multiple clinics.',
-      date: '2026-03-06',
-      status: 'new',
-      urgent: false,
-      notes: []
-    },
-    {
-      id: 5,
-      ref: 'BV-2026-E4TJ',
-      sector: 'Lesotho Electricity Company',
-      category: 'Workplace Safety Violation',
-      severity: 'low',
-      description: 'Staff working on live lines without proper protective equipment. Safety officer aware but not acting.',
-      date: '2026-03-07',
-      status: 'resolved',
-      urgent: false,
-      notes: [
-        { text: 'Report reviewed and forwarded to LEC safety compliance team.', date: '2026-03-07' },
-        { text: 'LEC confirmed corrective action taken. Case closed.', date: '2026-03-08' }
-      ]
-    }
-  ];
+  // ── SUPABASE ──
+  const SUPABASE_URL = 'https://eqvnmyiuxmjbjbrmocgi.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_fRylygP4azHQRuCRM0zJsA_US9RJPiP';
+  const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  let reports = [];
 
   let currentFilter = 'all';
   let currentReport = null;
 
-  function doLogin() {
+  async function doLogin() {
     const u = document.getElementById('login-user').value.trim();
     const p = document.getElementById('login-pass').value.trim();
     if (u === ADMIN_USER && p === ADMIN_PASS) {
       document.getElementById('login-screen').style.display = 'none';
       document.getElementById('dashboard').style.display = 'block';
-      renderStats();
-      renderReports();
+      await loadReports();
     } else {
       document.getElementById('login-error').style.display = 'block';
     }
+  }
+
+  async function loadReports() {
+    document.getElementById('reports-list').innerHTML = '<div class="empty-state"><div>⏳</div>Loading reports...</div>';
+    const { data, error } = await db.from('reports').select('*').order('created_at', { ascending: false });
+    if (error) {
+      document.getElementById('reports-list').innerHTML = '<div class="empty-state"><div>⚠️</div>Failed to load reports.</div>';
+      return;
+    }
+    reports = (data || []).map(r => ({
+      id: r.id,
+      ref: r.reference_code,
+      sector: r.sector,
+      category: r.category,
+      severity: r.severity,
+      description: r.description,
+      date: r.incident_date || r.created_at?.split('T')[0],
+      status: r.status || 'new',
+      urgent: r.urgent || false,
+      notes: r.notes || []
+    }));
+    renderStats();
+    renderReports();
   }
 
   function doLogout() {
@@ -794,9 +752,10 @@
     return { new: 'New', review: 'Under Review', investigating: 'Investigating', resolved: 'Resolved' }[s] || s;
   }
 
-  function toggleFlag(id) {
+  async function toggleFlag(id) {
     const r = reports.find(r => r.id === id);
     r.urgent = !r.urgent;
+    await db.from('reports').update({ urgent: r.urgent }).eq('id', id);
     renderStats();
     renderReports();
   }
@@ -851,20 +810,31 @@
     document.getElementById('modal-overlay').classList.add('open');
   }
 
-  function saveChanges() {
+  async function saveChanges() {
     const r = currentReport;
     const newStatus = document.getElementById('modal-status').value;
     const noteText = document.getElementById('modal-note').value.trim();
 
-    r.status = newStatus;
     if (noteText) {
       const today = new Date().toISOString().split('T')[0];
       r.notes.push({ text: noteText, date: today });
     }
+    r.status = newStatus;
+
+    const { error } = await db.from('reports').update({
+      status: newStatus,
+      urgent: r.urgent,
+      notes: r.notes
+    }).eq('id', r.id);
+
+    if (error) {
+      alert('Failed to save. Please try again.');
+      return;
+    }
 
     renderStats();
     renderReports();
-    openModal(r.id); // refresh modal
+    openModal(r.id);
   }
 
   function closeModal(e) {
