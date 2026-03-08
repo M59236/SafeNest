@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BoldVoice — Anonymous Reporting Platform</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0c10;
+    --surface: #111318;
+    --surface2: #1a1d25;
+    --border: #252830;
+    --accent: #00e5a0;
+    --accent2: #00b4ff;
+    --warn: #ff6b35;
+    --text: #e8eaf0;
+    --muted: #6b7280;
+    --danger: #ff4757;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Animated background grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,229,160,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,229,160,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .glow-orb {
+    position: fixed;
+    width: 500px;
+    height: 500px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(0,229,160,0.06) 0%, transparent 70%);
+    top: -100px;
+    right: -100px;
+    pointer-events: none;
+    z-index: 0;
+    animation: float 8s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translate(0, 0); }
+    50% { transform: translate(-30px, 30px); }
+  }
+
+  /* NAV */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    padding: 20px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(10,12,16,0.85);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 1.3rem;
+    letter-spacing: -0.03em;
+  }
+
+  .logo span { color: var(--accent); }
+
+  .nav-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.7rem;
+    color: var(--accent);
+    border: 1px solid rgba(0,229,160,0.3);
+    padding: 5px 12px;
+    border-radius: 20px;
+    letter-spacing: 0.1em;
+  }
+
+  .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.8); }
+  }
+
+  /* MAIN */
+  main {
+    position: relative;
+    z-index: 1;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 120px 30px 60px;
+  }
+
+  /* HERO */
+  .hero {
+    margin-bottom: 60px;
+    animation: fadeUp 0.8s ease both;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .hero-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.7rem;
+    letter-spacing: 0.15em;
+    color: var(--muted);
+    margin-bottom: 20px;
+    text-transform: uppercase;
+  }
+
+  .hero-tag::before {
+    content: '';
+    width: 24px; height: 1px;
+    background: var(--accent);
+  }
+
+  h1 {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: clamp(2.2rem, 5vw, 3.5rem);
+    line-height: 1.05;
+    letter-spacing: -0.04em;
+    margin-bottom: 16px;
+  }
+
+  h1 em {
+    font-style: normal;
+    color: var(--accent);
+  }
+
+  .hero-sub {
+    font-size: 0.85rem;
+    color: var(--muted);
+    line-height: 1.7;
+    max-width: 520px;
+  }
+
+  /* TRUST BAR */
+  .trust-bar {
+    display: flex;
+    gap: 24px;
+    margin: 30px 0 50px;
+    flex-wrap: wrap;
+    animation: fadeUp 0.8s 0.1s ease both;
+  }
+
+  .trust-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.72rem;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+  }
+
+  .trust-icon {
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+  }
+
+  /* TABS */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 30px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 4px;
+    animation: fadeUp 0.8s 0.2s ease both;
+  }
+
+  .tab {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.2s;
+    text-transform: uppercase;
+  }
+
+  .tab.active {
+    background: var(--accent);
+    color: var(--bg);
+    font-weight: 500;
+  }
+
+  /* PANELS */
+  .panel { display: none; animation: fadeUp 0.4s ease both; }
+  .panel.active { display: block; }
+
+  /* FORM CARD */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 36px;
+    animation: fadeUp 0.8s 0.3s ease both;
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 28px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .card-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 1.1rem;
+  }
+
+  .anon-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+    text-transform: uppercase;
+  }
+
+  /* FORM ELEMENTS */
+  .field { margin-bottom: 20px; }
+
+  label {
+    display: block;
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  input, select, textarea {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.82rem;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    -webkit-appearance: none;
+  }
+
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(0,229,160,0.1);
+  }
+
+  select option { background: var(--surface2); }
+
+  textarea { min-height: 130px; resize: vertical; line-height: 1.6; }
+
+  .field-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  /* SEVERITY SELECTOR */
+  .severity-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+
+  .severity-btn {
+    padding: 10px 8px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface2);
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s;
+    text-transform: uppercase;
+  }
+
+  .severity-btn:hover { border-color: var(--accent); color: var(--text); }
+
+  .severity-btn.selected {
+    border-color: var(--accent);
+    background: rgba(0,229,160,0.1);
+    color: var(--accent);
+  }
+
+  .severity-btn.s-critical.selected {
+    border-color: var(--danger);
+    background: rgba(255,71,87,0.1);
+    color: var(--danger);
+  }
+
+  .severity-btn.s-high.selected {
+    border-color: var(--warn);
+    background: rgba(255,107,53,0.1);
+    color: var(--warn);
+  }
+
+  /* SUBMIT */
+  .submit-btn {
+    width: 100%;
+    padding: 14px;
+    background: var(--accent);
+    border: none;
+    border-radius: 8px;
+    color: var(--bg);
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 0.9rem;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    margin-top: 24px;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .submit-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 24px rgba(0,229,160,0.25);
+  }
+
+  .submit-btn:active { transform: translateY(0); }
+
+  /* TRACK PANEL */
+  .track-input-group {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+
+  .track-input-group input { flex: 1; }
+
+  .track-btn {
+    padding: 12px 20px;
+    background: var(--accent);
+    border: none;
+    border-radius: 8px;
+    color: var(--bg);
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 0.8rem;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s;
+  }
+
+  .track-btn:hover { opacity: 0.85; }
+
+  /* STATUS CARD */
+  .status-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+  }
+
+  .status-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+
+  .status-label {
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  .status-value {
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    font-size: 0.85rem;
+  }
+
+  .status-pill {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .pill-review { background: rgba(0,180,255,0.15); color: var(--accent2); border: 1px solid rgba(0,180,255,0.3); }
+  .pill-open { background: rgba(255,107,53,0.15); color: var(--warn); border: 1px solid rgba(255,107,53,0.3); }
+  .pill-closed { background: rgba(0,229,160,0.15); color: var(--accent); border: 1px solid rgba(0,229,160,0.3); }
+
+  /* TIMELINE */
+  .timeline { margin-top: 20px; }
+
+  .timeline-item {
+    display: flex;
+    gap: 14px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .timeline-item:last-child { border-bottom: none; }
+
+  .tl-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    margin-top: 5px;
+    flex-shrink: 0;
+    box-shadow: 0 0 8px rgba(0,229,160,0.5);
+  }
+
+  .tl-dot.inactive { background: var(--border); box-shadow: none; }
+
+  .tl-text { font-size: 0.75rem; color: var(--muted); line-height: 1.5; }
+  .tl-text strong { color: var(--text); display: block; margin-bottom: 2px; font-weight: 400; }
+
+  /* STATS PANEL */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .stat-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+  }
+
+  .stat-num {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 2rem;
+    color: var(--accent);
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  .stat-label {
+    font-size: 0.65rem;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  /* CATEGORY BARS */
+  .cat-bar-item { margin-bottom: 14px; }
+
+  .cat-bar-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.72rem;
+    color: var(--muted);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .bar-track {
+    height: 6px;
+    background: var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    background: var(--accent);
+    transition: width 1s ease;
+  }
+
+  .bar-fill.orange { background: var(--warn); }
+  .bar-fill.blue { background: var(--accent2); }
+  .bar-fill.red { background: var(--danger); }
+
+  /* SUCCESS STATE */
+  .success-box {
+    display: none;
+    text-align: center;
+    padding: 40px 20px;
+    animation: fadeUp 0.5s ease both;
+  }
+
+  .success-icon {
+    width: 64px; height: 64px;
+    border-radius: 50%;
+    background: rgba(0,229,160,0.1);
+    border: 2px solid var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    margin: 0 auto 20px;
+  }
+
+  .success-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 1.3rem;
+    margin-bottom: 10px;
+  }
+
+  .ref-code {
+    display: inline-block;
+    background: var(--surface2);
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-size: 1.1rem;
+    letter-spacing: 0.15em;
+    color: var(--accent);
+    margin: 14px 0;
+  }
+
+  .success-note {
+    font-size: 0.72rem;
+    color: var(--muted);
+    line-height: 1.6;
+    max-width: 380px;
+    margin: 0 auto;
+  }
+
+  .new-report-btn {
+    margin-top: 20px;
+    padding: 10px 24px;
+    background: transparent;
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    color: var(--accent);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.78rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .new-report-btn:hover { background: rgba(0,229,160,0.1); }
+
+  /* FOOTER */
+  footer {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    padding: 30px;
+    font-size: 0.68rem;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+    border-top: 1px solid var(--border);
+    margin-top: 20px;
+  }
+
+  footer span { color: var(--accent); }
+
+  /* RESPONSIVE */
+  @media (max-width: 600px) {
+    nav { padding: 16px 20px; }
+    main { padding: 100px 16px 40px; }
+    .card { padding: 24px 20px; }
+    .field-row { grid-template-columns: 1fr; }
+    .severity-grid { grid-template-columns: repeat(2, 1fr); }
+    .stats-grid { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="glow-orb"></div>
+
+<nav>
+  <div class="logo">Bold<span>Voice</span></div>
+  <div class="nav-badge"><div class="dot"></div> SECURE CHANNEL ACTIVE</div>
+</nav>
+
+<main>
+  <div class="hero">
+    <div class="hero-tag">Lesotho Integrity Platform</div>
+    <h1>Speak truth.<br><em>Stay safe.</em></h1>
+    <p class="hero-sub">A fully anonymous channel for employees across government departments and private companies in Lesotho to report corruption, misconduct, or safety violations — with zero risk of identification.</p>
+  </div>
+
+  <div class="trust-bar">
+    <div class="trust-item">
+      <div class="trust-icon">🔒</div>
+      End-to-end encrypted
+    </div>
+    <div class="trust-item">
+      <div class="trust-icon">👤</div>
+      Zero identity logging
+    </div>
+    <div class="trust-item">
+      <div class="trust-icon">🌍</div>
+      Hosted outside Lesotho
+    </div>
+    <div class="trust-item">
+      <div class="trust-icon">⚖️</div>
+      Protected by law
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('report')">📋 Submit Report</button>
+    <button class="tab" onclick="switchTab('track')">🔍 Track Report</button>
+    <button class="tab" onclick="switchTab('stats')">📊 Platform Stats</button>
+  </div>
+
+  <!-- REPORT PANEL -->
+  <div class="panel active" id="panel-report">
+    <div class="card">
+      <div id="form-content">
+        <div class="card-header">
+          <div class="card-title">New Anonymous Report</div>
+          <div class="anon-badge"><div class="dot"></div> Anonymous</div>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label>Sector / Department</label>
+            <select id="sector">
+              <option value="">Select sector...</option>
+              <option>Ministry of Finance</option>
+              <option>Ministry of Health</option>
+              <option>Ministry of Education</option>
+              <option>Ministry of Public Works</option>
+              <option>Lesotho Revenue Authority</option>
+              <option>Lesotho Electricity Company</option>
+              <option>Lesotho Highlands Development Authority</option>
+              <option>Central Bank of Lesotho</option>
+              <option>Private Company</option>
+              <option>Other Government Department</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Type of Misconduct</label>
+            <select id="category">
+              <option value="">Select type...</option>
+              <option>Financial Corruption / Bribery</option>
+              <option>Procurement Fraud</option>
+              <option>Abuse of Power</option>
+              <option>Sexual Harassment</option>
+              <option>Workplace Safety Violation</option>
+              <option>Data / Records Falsification</option>
+              <option>Environmental Violation</option>
+              <option>Other</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Severity Level</label>
+          <div class="severity-grid">
+            <button class="severity-btn s-low" onclick="selectSeverity(this, 'low')">🟢 Low</button>
+            <button class="severity-btn s-medium" onclick="selectSeverity(this, 'medium')">🟡 Medium</button>
+            <button class="severity-btn s-high" onclick="selectSeverity(this, 'high')">🟠 High</button>
+            <button class="severity-btn s-critical" onclick="selectSeverity(this, 'critical')">🔴 Critical</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Describe the incident</label>
+          <textarea id="description" placeholder="Describe what happened, when, and where. Include any relevant details. Do NOT include information that could identify you."></textarea>
+        </div>
+
+        <div class="field">
+          <label>When did this occur?</label>
+          <input type="date" id="incident-date">
+        </div>
+
+        <div class="field">
+          <label>Supporting evidence (optional)</label>
+          <input type="text" placeholder="Describe any documents, files, or witnesses (do not upload sensitive files here)">
+        </div>
+
+        <button class="submit-btn" onclick="submitReport()">
+          🔒 Submit Anonymously — Encrypt & Send
+        </button>
+      </div>
+
+      <!-- SUCCESS STATE -->
+      <div class="success-box" id="success-box">
+        <div class="success-icon">✓</div>
+        <div class="success-title">Report Submitted Securely</div>
+        <p style="font-size:0.78rem; color:var(--muted);">Your reference code — save this to track your report:</p>
+        <div class="ref-code" id="ref-code-display"></div>
+        <p class="success-note">Your report has been encrypted and delivered to an independent review committee. No identifying information was recorded. Use your reference code to check status updates.</p>
+        <button class="new-report-btn" onclick="resetForm()">Submit Another Report</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TRACK PANEL -->
+  <div class="panel" id="panel-track">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Track Your Report</div>
+        <div class="anon-badge">🔍 No login required</div>
+      </div>
+      <div class="track-input-group">
+        <input type="text" id="track-input" placeholder="Enter your reference code (e.g. BV-2025-7XK9)" />
+        <button class="track-btn" onclick="trackReport()">Track</button>
+      </div>
+
+      <div id="track-result" style="display:none">
+        <div class="status-card">
+          <div class="status-row">
+            <span class="status-label">Reference</span>
+            <span class="status-value" id="track-ref">BV-2025-7XK9</span>
+          </div>
+          <div class="status-row">
+            <span class="status-label">Category</span>
+            <span class="status-value">Financial Corruption / Bribery</span>
+          </div>
+          <div class="status-row">
+            <span class="status-label">Submitted</span>
+            <span class="status-value">14 Feb 2025</span>
+          </div>
+          <div class="status-row" style="margin-bottom:0">
+            <span class="status-label">Status</span>
+            <span class="status-pill pill-review">Under Review</span>
+          </div>
+
+          <div class="timeline">
+            <div class="timeline-item">
+              <div class="tl-dot"></div>
+              <div class="tl-text"><strong>Report Received</strong>Encrypted report logged and assigned to independent reviewer. — 14 Feb 2025</div>
+            </div>
+            <div class="timeline-item">
+              <div class="tl-dot"></div>
+              <div class="tl-text"><strong>Initial Assessment Complete</strong>Report classified as High severity. Assigned to investigative committee. — 17 Feb 2025</div>
+            </div>
+            <div class="timeline-item">
+              <div class="tl-dot"></div>
+              <div class="tl-text"><strong>Under Active Investigation</strong>Investigators are gathering evidence. No further action required from you. — Ongoing</div>
+            </div>
+            <div class="timeline-item">
+              <div class="tl-dot inactive"></div>
+              <div class="tl-text"><strong>Resolution</strong>Pending...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="track-empty" style="text-align:center; padding:30px; color:var(--muted); font-size:0.78rem;">
+        Enter your reference code above to see your report status.
+      </div>
+    </div>
+  </div>
+
+  <!-- STATS PANEL -->
+  <div class="panel" id="panel-stats">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Platform Overview</div>
+        <div class="anon-badge">Public transparency data</div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <span class="stat-num">247</span>
+          <span class="stat-label">Reports Filed</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-num">83%</span>
+          <span class="stat-label">Resolution Rate</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-num">12</span>
+          <span class="stat-label">Sectors Covered</span>
+        </div>
+      </div>
+
+      <div style="margin-bottom:8px; font-size:0.72rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.1em;">Reports by Category</div>
+
+      <div class="cat-bar-item">
+        <div class="cat-bar-header"><span>Financial Corruption</span><span>34%</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:34%"></div></div>
+      </div>
+      <div class="cat-bar-item">
+        <div class="cat-bar-header"><span>Procurement Fraud</span><span>28%</span></div>
+        <div class="bar-track"><div class="bar-fill orange" style="width:28%"></div></div>
+      </div>
+      <div class="cat-bar-item">
+        <div class="cat-bar-header"><span>Abuse of Power</span><span>19%</span></div>
+        <div class="bar-track"><div class="bar-fill blue" style="width:19%"></div></div>
+      </div>
+      <div class="cat-bar-item">
+        <div class="cat-bar-header"><span>Safety Violations</span><span>11%</span></div>
+        <div class="bar-track"><div class="bar-fill red" style="width:11%"></div></div>
+      </div>
+      <div class="cat-bar-item">
+        <div class="cat-bar-header"><span>Other</span><span>8%</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:8%; opacity:0.5"></div></div>
+      </div>
+
+      <div style="margin-top:24px; padding:16px; background:var(--surface2); border-radius:10px; border:1px solid var(--border); font-size:0.72rem; color:var(--muted); line-height:1.7;">
+        ⚠️ All statistics are aggregated and anonymized. No individual report data is ever made public. Data is reviewed quarterly by an independent oversight body.
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  BoldVoice &nbsp;·&nbsp; Built for <span>Lesotho</span> &nbsp;·&nbsp; All reports are anonymous & encrypted &nbsp;·&nbsp; Protected under Lesotho Whistleblower Protection Act
+</footer>
+
+<script>
+  function switchTab(name) {
+    document.querySelectorAll('.tab').forEach((t, i) => {
+      t.classList.toggle('active', ['report','track','stats'][i] === name);
+    });
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('panel-' + name).classList.add('active');
+  }
+
+  function selectSeverity(btn, level) {
+    document.querySelectorAll('.severity-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+  }
+
+  function generateRef() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let code = 'BV-2025-';
+    for (let i = 0; i < 4; i++) code += chars[Math.floor(Math.random() * chars.length)];
+    return code;
+  }
+
+  function submitReport() {
+    const sector = document.getElementById('sector').value;
+    const category = document.getElementById('category').value;
+    const description = document.getElementById('description').value;
+
+    if (!sector || !category || !description.trim()) {
+      alert('Please fill in Sector, Type of Misconduct, and Description before submitting.');
+      return;
+    }
+
+    const ref = generateRef();
+    document.getElementById('ref-code-display').textContent = ref;
+    document.getElementById('form-content').style.display = 'none';
+    document.getElementById('success-box').style.display = 'block';
+  }
+
+  function resetForm() {
+    document.getElementById('form-content').style.display = 'block';
+    document.getElementById('success-box').style.display = 'none';
+    document.getElementById('sector').value = '';
+    document.getElementById('category').value = '';
+    document.getElementById('description').value = '';
+    document.getElementById('incident-date').value = '';
+    document.querySelectorAll('.severity-btn').forEach(b => b.classList.remove('selected'));
+  }
+
+  function trackReport() {
+    const val = document.getElementById('track-input').value.trim();
+    if (!val) return;
+    document.getElementById('track-ref').textContent = val;
+    document.getElementById('track-result').style.display = 'block';
+    document.getElementById('track-empty').style.display = 'none';
+  }
+</script>
+</body>
+</html>
